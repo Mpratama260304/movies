@@ -1,10 +1,11 @@
 import './style.css'
 import './movies-page.css'
 
-const API_BASE = 'http://localhost:3000/api';
+// Prefer relative API path so Vite dev proxy can forward to backend
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 // State
-let currentSource = 'rebahin';
+let currentSource = 'kitanonton';
 let currentMovies = [];
 let currentMovie = null;
 let currentServer = 1;
@@ -188,7 +189,7 @@ function setupCarouselNavigation() {
 }
 
 // ===== LOAD MOVIES =====
-async function loadMovies() {
+async function loadMovies(allowFallback = true) {
     showLoading(true);
     hideError();
 
@@ -219,6 +220,14 @@ async function loadMovies() {
             showError('Failed to load movies');
         }
     } catch (err) {
+        // If Rebahin is down, automatically fall back to Kitanonton once
+        if (allowFallback && currentSource === 'rebahin') {
+            showError('Rebahin is unavailable, switching to Kitanonton...');
+            currentSource = 'kitanonton';
+            if (sourceSelect) sourceSelect.value = 'kitanonton';
+            return loadMovies(false);
+        }
+
         showError('Error connecting to backend: ' + err.message);
     } finally {
         showLoading(false);
